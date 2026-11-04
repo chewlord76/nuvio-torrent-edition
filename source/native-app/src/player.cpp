@@ -210,7 +210,11 @@ void Player::open(const Options& opts) {
 	aq_.reset();
 	state_ = State::Opening;
 	open_started_ = now_seconds();
-	demux_ = std::thread([this] { demux_thread(); });
+	try {
+		demux_ = std::thread([this] { demux_thread(); });
+	} catch (const std::exception& e) {
+		fail(std::string("Cannot start demux thread: ") + e.what());
+	}
 }
 
 void Player::close() {
@@ -268,9 +272,11 @@ bool Player::open_stream_codec(int stream, AVCodecContext** out) {
 	avcodec_parameters_to_context(ctx, st->codecpar);
 	ctx->pkt_timebase = st->time_base;
 	if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO) {
-		// The PS5 has 8 Zen 2 cores; FFmpeg can't count them here, so say it.
-		ctx->thread_count = opts_.preview ? 1 : 8;
-		ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+		// The PS5 Zen 2 cores: 4 frame threads decode 4K HEVC smoothly without thread explosion.
+		ctx->thread_count = opts_.preview ? 1 : 4;
+		ctx->thread_type = FF_THREAD_FRAME;
+	} else {
+		ctx->thread_count = 1;
 	}
 	int r = avcodec_open2(ctx, codec, nullptr);
 	if (r < 0) {
@@ -292,7 +298,13 @@ static bool is_supported_subtitle(const AVCodecParameters* par) {
 // Demuxer
 
 void Player::demux_thread() {
-	demux_run();
+	try {
+		demux_run();
+	} catch (const std::exception& e) {
+		fail(std::string("Player error: ") + e.what());
+	} catch (...) {
+		fail("Player encountered an unexpected error");
+	}
 	// The input is closed by now; the network stream behind it goes last.
 	if (TorrentStream::is_ours(main_pb_)) TorrentStream::close_avio(&main_pb_);
 	else if (main_pb_) NetStream::close_avio(&main_pb_);
@@ -564,8 +576,17 @@ void Player::demux_run() {
 	state_ = State::Playing;
 	apply_run_state();
 
-	if (vs >= 0) video_ = std::thread([this] { video_thread(); });
-	if (as >= 0 && pcm_.is_open()) audio_ = std::thread([this] { audio_thread(); });
+	try {
+		if (vs >= 0) video_ = std::thread([this] { video_thread(); });
+	} catch (const std::exception& e) {
+		fail(std::string("Cannot start video playback thread: ") + e.what());
+		return;
+	}
+	try {
+		if (as >= 0 && pcm_.is_open()) audio_ = std::thread([this] { audio_thread(); });
+	} catch (const std::exception& e) {
+		dlog("player: warning, cannot start audio thread: %s", e.what());
+	}
 
 	AVPacket* pkt = av_packet_alloc();
 	int errors = 0;

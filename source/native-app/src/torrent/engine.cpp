@@ -71,7 +71,7 @@ const int64_t kMaxReadahead = 3ll << 30;
 const int64_t kMaxActiveBytes = 128ll << 20;  // pieces being assembled in memory
 const int64_t kMaxRamCache = 384ll << 20;     // when the cache file can't be used
 const double kPauseAfter = 45;       // no reader for this long: stop downloading
-const int kTrackerThreads = 8;
+const int kTrackerThreads = 2;
 const int kExtMetadata = 1, kExtPex = 2;  // our extension message ids (BEP 10)
 
 const char* kDefaultTrackers[] = {
@@ -1576,12 +1576,22 @@ void dht_poll(bool readable, double now) {
 		I.boot.clear();
 	}
 	static double last_boot_check = 0;
-	if (now - last_boot_check > 5.0) {
+	static std::atomic<bool> s_boot_resolving{false};
+	if (now - last_boot_check > 15.0) {
 		last_boot_check = now;
 		int good = 0, dubious = 0, cached = 0, incoming = 0;
 		dht_nodes(AF_INET, &good, &dubious, &cached, &incoming);
 		if (good + dubious < 8) {
-			std::thread(resolve_bootstrap).detach();
+			if (!s_boot_resolving.exchange(true)) {
+				try {
+					std::thread([] {
+						resolve_bootstrap();
+						s_boot_resolving = false;
+					}).detach();
+				} catch (...) {
+					s_boot_resolving = false;
+				}
+			}
 		}
 	}
 	time_t tosleep = 1;
@@ -1933,7 +1943,11 @@ void tracker_worker(std::shared_ptr<Torrent> t, int worker) {
 	// One-time set-up, beside the first announces: the router mapping first
 	// (so the trackers get a port that works), the DHT's first nodes.
 	if (worker == 0 && !impl().map_started.exchange(true)) map_port();
-	if (!impl().boot_started.exchange(true)) std::thread(resolve_bootstrap).detach();
+	if (!impl().boot_started.exchange(true)) {
+		try {
+			std::thread(resolve_bootstrap).detach();
+		} catch (...) {}
+	}
 	int round = 0;
 	while (!tp->stopped) {
 		std::vector<std::string> list;

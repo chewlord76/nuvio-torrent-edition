@@ -24,19 +24,30 @@ int __wrap_pthread_create(pthread_t* thread, const pthread_attr_t* attr, void* (
 	pthread_attr_t local;
 	size_t size = 0;
 	if (attr) {
-		// Callers hand over their own attributes; raising the stack is harmless.
-		if (pthread_attr_getstacksize(attr, &size) == 0 && size < MIN_STACK)
-			pthread_attr_setstacksize((pthread_attr_t*)attr, MIN_STACK);
-		return __real_pthread_create(thread, attr, start, arg);
+		int r = __real_pthread_create(thread, attr, start, arg);
+		if (r == 0) return 0;
+		if (pthread_attr_init(&local) == 0) {
+			static const size_t fb_sizes[] = {4u << 20, 2u << 20, 1u << 20, 512u << 10, 256u << 10};
+			for (unsigned i = 0; i < sizeof(fb_sizes) / sizeof(fb_sizes[0]) && r != 0; i++) {
+				pthread_attr_setstacksize(&local, fb_sizes[i]);
+				r = __real_pthread_create(thread, &local, start, arg);
+			}
+			pthread_attr_destroy(&local);
+		}
+		if (r != 0) r = __real_pthread_create(thread, NULL, start, arg);
+		return r;
 	}
 	if (pthread_attr_init(&local) != 0) return __real_pthread_create(thread, NULL, start, arg);
-	static const size_t sizes[] = {MIN_STACK, 4u << 20, 1u << 20};
+	static const size_t sizes[] = {4u << 20, 2u << 20, 1u << 20, 512u << 10, 256u << 10};
 	int r = -1;
-	for (unsigned i = 0; i < 3 && r != 0; i++) {
+	for (unsigned i = 0; i < sizeof(sizes) / sizeof(sizes[0]) && r != 0; i++) {
 		pthread_attr_setstacksize(&local, sizes[i]);
 		r = __real_pthread_create(thread, &local, start, arg);
 	}
 	pthread_attr_destroy(&local);
+	if (r != 0) {
+		r = __real_pthread_create(thread, NULL, start, arg);
+	}
 	return r;
 }
 
