@@ -149,10 +149,10 @@ Follow the loader's instructions for your firmware. The project targets firmware
 9.00 needs further testing. Homebrew loader compatibility does not establish
 HDR/audio compatibility.
 
-| 1.0.0.5 download | Installation |
+| 1.0.0.5 Torrent Edition download | Installation |
 | --- | --- |
-| [**PPSA99288.zip**](https://github.com/HandshakeHackin/Nuvio-maxd-releases/releases/download/v1.0.0.5-native-experimental/PPSA99288.zip) | Extract and copy the complete `PPSA99288/` folder into a location scanned by ShadowMount+, such as `/data/homebrew/`. The executable should be `/data/homebrew/PPSA99288/eboot.bin`, with no extra folder level. |
-| [**NuvioMaxd-1.0.0.5-native.ffpfsc**](https://github.com/HandshakeHackin/Nuvio-maxd-releases/releases/download/v1.0.0.5-native-experimental/NuvioMaxd-1.0.0.5-native.ffpfsc) | Place the image in a homebrew folder on storage scanned by ShadowMount+. |
+| [**PPSA99288.zip**](https://github.com/chewlord76/nuvio-torrent-edition/releases/download/v1.0.0.5-torrent-edition/PPSA99288.zip) | Extract and copy the complete `PPSA99288/` folder into `/user/app/` (for Itemzflow) or a location scanned by ShadowMount+. |
+| [**PPSA99288.ffpfsc**](https://github.com/chewlord76/nuvio-torrent-edition/releases/download/v1.0.0.5-torrent-edition/PPSA99288.ffpfsc) | Place the image in `/data/` or a homebrew folder on USB and mount with ShadowMount+ 1.7. |
 
 Use one installation format at a time. Close the app before replacing an image
 or folder, preserve your app data, and let ShadowMount+ finish scanning before
