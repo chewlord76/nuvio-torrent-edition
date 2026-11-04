@@ -67,8 +67,8 @@ const double kChokedTimeout = 60;    // a peer that keeps us choked this long ma
 const uint32_t kMaxMessage = 2u << 20;
 // How far ahead of the player to download: half the 6 GB cache, about a
 // quarter of an hour of a 4K remux, to ride out slow patches in the swarm.
-const int64_t kMaxReadahead = 3ll << 30;
-const int64_t kMaxActiveBytes = 128ll << 20;  // pieces being assembled in memory
+const int64_t kMaxReadahead = 4ll << 30;
+const int64_t kMaxActiveBytes = 256ll << 20;  // pieces being assembled in memory
 const int64_t kMaxRamCache = 384ll << 20;     // when the cache file can't be used
 const double kPauseAfter = 45;       // no reader for this long: stop downloading
 const int kTrackerThreads = 2;
@@ -540,8 +540,8 @@ void drop_peer(Torrent* t, Peer* p, const char* why) {
 
 int64_t readahead_bytes(Torrent* t) {
 	int64_t budget = t->cache ? impl().cache_bytes : (int64_t(t->nslots) * t->plen);
-	int64_t cap = std::max<int64_t>(kMaxReadahead, budget / 2);
-	return std::max<int64_t>(std::min<int64_t>(budget / 2, cap), 4 * t->plen);
+	int64_t limit = std::min<int64_t>(budget > (128ll << 20) ? budget - (64ll << 20) : budget, kMaxReadahead);
+	return std::max<int64_t>(limit, 8 * t->plen);
 }
 
 void refresh_wanted(Torrent* t) {
@@ -562,11 +562,18 @@ void refresh_wanted(Torrent* t) {
 		if (p >= first_file && p <= last && !t->have[size_t(p)] && seen.insert(p).second)
 			t->wanted.push_back(p);
 	};
+	// 0. Immediate priority for pieces readers are waiting on right now
+	for (const auto& [id, demand] : t->waiting_readers) {
+		if (demand.piece >= first_file && demand.piece <= last && !t->have[size_t(demand.piece)]) {
+			add_piece(demand.piece);
+			if (demand.piece + 1 <= last) add_piece(demand.piece + 1);
+		}
+	}
 	// 1. Immediate playhead pieces for any active reader
 	for (int64_t s : starts) {
 		int first = int(std::max(s, f.offset) / t->plen);
-		add_piece(first);
-		add_piece(first + 1);
+		for (int p = first; p <= std::min(first + 3, last); p++)
+			add_piece(p);
 	}
 	// 2. Container header and tail pieces (first 2 and last 2 pieces of the file)
 	// so MP4 moov atoms and MKV Cues at the end of the file arrive immediately.
@@ -638,7 +645,7 @@ void pick(Torrent* t, Peer* p, double now) {
 		if (t->have[size_t(piece)] || !peer_has(p, piece)) continue;
 		auto it = t->active.find(piece);
 		if (it == t->active.end()) {
-			if (t->active.size() >= max_active && wi >= 2) continue;
+			if (t->active.size() >= max_active && wi >= 4) continue;
 			Piece pc;
             try {
                 pc.data.resize(size_t(t->piece_size(piece)));
@@ -665,7 +672,7 @@ void pick(Torrent* t, Peer* p, double now) {
 	}
 	// The next pieces the reader needs: when every block is already asked
 	// for, ask this peer too (a slow peer shouldn't hold up playback).
-	for (size_t wi = 0; wi < t->wanted.size() && wi < 3 && room > 0; wi++) {
+	for (size_t wi = 0; wi < t->wanted.size() && wi < 6 && room > 0; wi++) {
 		int piece = t->wanted[wi];
 		if (t->have[size_t(piece)] || !peer_has(p, piece)) continue;
 		auto it = t->active.find(piece);
@@ -673,12 +680,13 @@ void pick(Torrent* t, Peer* p, double now) {
 		Piece& pc = it->second;
 		int nb = t->blocks(piece);
 		for (int b = 0; b < nb && room > 0; b++) {
-			if (pc.got[size_t(b)] || pc.asked[size_t(b)] != 1) continue;
+			if (pc.got[size_t(b)]) continue;
 			uint32_t begin = uint32_t(b) * kBlock;
 			bool mine = false;
 			for (auto& r : p->reqs)
-				if (r.piece == uint32_t(piece) && r.begin == begin) mine = true;
+				if (r.piece == uint32_t(piece) && r.begin == begin) { mine = true; break; }
 			if (mine) continue;
+			if (pc.asked[size_t(b)] >= 3 && t->waiting_readers.empty()) continue;
 			uint32_t len = uint32_t(std::min<int64_t>(kBlock, t->piece_size(piece) - begin));
 			send_request(p, uint32_t(piece), begin, len, now);
 			pc.asked[size_t(b)]++;
@@ -1339,6 +1347,7 @@ void recover_stalled_torrent(Torrent* t, double now) {
     if (t->stopped || t->idle || now < t->allocation_retry_at) return;
     double since = now;
     bool waiting = false;
+    int waiting_piece = -1;
     int64_t active_bytes = 0;
     for (const auto& entry : t->active) active_bytes += int64_t(entry.second.data.size());
     for (const auto& [id, demand] : t->waiting_readers) {
@@ -1350,15 +1359,24 @@ void recover_stalled_torrent(Torrent* t, double now) {
             if (!t->active.count(demand.piece) && active_bytes + t->piece_size(demand.piece) > kMaxActiveBytes) continue;
         }
         waiting = true; since = std::min(since, demand.since);
+        waiting_piece = demand.piece;
     }
     if (!waiting) return;
     const double progress = t->has_meta ? t->last_payload : t->metadata_progress_at;
     if (progress > t->last_recovery) t->recovery_attempts = 0;
+    // If the engine is actively receiving payload data, the swarm is working!
+    if (t->has_meta && (now - progress < 10.0 || t->rate > 200 * 1024)) return;
     const double quiet = std::max({since, progress, t->last_recovery});
     if (now < t->next_recovery || now - quiet < 30) return;
     unsigned retired = 0;
     for (auto& peer : t->peers) {
-        if (peer->dead || peer->state != Peer::Active || now - std::max(peer->since, peer->payload_at) < 30) continue;
+        if (peer->dead || peer->state != Peer::Active) continue;
+        // Never drop peers that have sent us data recently!
+        if (peer->payload_at > 0 && now - peer->payload_at < 20) continue;
+        if (now - peer->since < 30) continue;
+        Known& k = t->known[peer->key];
+        k.fails = 0;
+        k.retry_at = now + 1.0;
         drop_peer(t, peer.get(), "no useful data; automatic reconnect");
         ++retired;
     }
@@ -1368,7 +1386,7 @@ void recover_stalled_torrent(Torrent* t, double now) {
     const double delay = 30 * double(1u << std::min(t->recovery_attempts, 2u));
     t->next_recovery = now + delay;
     ++t->recovery_attempts;
-    dlog("torrent recovery: waiting_s=%.1f retired=%u retry_s=%.0f", now-quiet, retired, delay);
+    dlog("torrent recovery: waiting_s=%.1f piece=%d retired=%u retry_s=%.0f", now-quiet, waiting_piece, retired, delay);
 }
 
 
@@ -1414,7 +1432,7 @@ void upkeep(Torrent* t, double now) {
 		// Late blocks: ask someone else, and expect less from this peer.
 		bool late = false;
 		for (size_t i = 0; i < p->reqs.size();) {
-			if ((p->payload_at <= 0 || now - p->payload_at > kRequestTimeout) && now - p->reqs[i].at > kRequestTimeout) {
+			if (now - p->reqs[i].at > kRequestTimeout) {
 				release_request(t, p->reqs[i]);
 				p->reqs.erase(p->reqs.begin() + long(i));
 				late = true;
@@ -2958,10 +2976,18 @@ int Engine::read(const std::shared_ptr<Torrent>& t, int reader_id, int file_idx,
 	}
 	int piece = int(abs / t->plen);
     struct WaitingGuard {
-        Torrent* torrent; int id;
-        ~WaitingGuard() { torrent->waiting_readers.erase(id); }
-    } waiting{t.get(), reader_id};
-    if (!t->have[size_t(piece)]) t->waiting_readers[reader_id] = {now_seconds(), piece, abort};
+        Torrent* torrent; int id; int p;
+        ~WaitingGuard() {
+            torrent->waiting_readers.erase(id);
+            if (torrent->have.size() > size_t(p) && torrent->have[size_t(p)])
+                dlog("torrent %s: reader %d unblocked for piece %d", torrent->hex.c_str(), id, p);
+        }
+    } waiting{t.get(), reader_id, piece};
+    if (!t->have[size_t(piece)]) {
+        t->waiting_readers[reader_id] = {now_seconds(), piece, abort};
+        refresh_wanted(t.get());
+        dlog("torrent %s: reader %d waiting for piece %d (pos=%lld)", t->hex.c_str(), reader_id, piece, (long long)pos);
+    }
 	while (!t->have[size_t(piece)]) {
 		if (t->stopped) return -2;
 		if ((abort && abort->load()) || (read_interrupt && read_interrupt->load())) return -1;

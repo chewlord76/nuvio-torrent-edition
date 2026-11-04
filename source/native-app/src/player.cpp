@@ -569,8 +569,8 @@ void Player::demux_run() {
 		double mbps = fmt_->bit_rate > 0 ? fmt_->bit_rate / 1e6
 		              : (size > 0 && duration_ > 0) ? size * 8.0 / duration_ / 1e6
 		                                            : 0;
-		start_target_ = opts_.live_tv ? 2 : mbps >= 40 ? 15 : mbps >= 20 ? 10 : mbps >= 10 ? 5 : 2;
-		dlog("player: about %.0f Mbit/s, buffering %.0f s before playing", mbps, start_target_);
+		start_target_ = opts_.live_tv ? 2.0 : mbps >= 40 ? 3.5 : mbps >= 20 ? 3.0 : 2.0;
+		dlog("player: about %.0f Mbit/s, buffering %.1f s before playing", mbps, start_target_);
 	}
 	if (opts_.start > 0) do_seek(opts_.start);
 	state_ = State::Playing;
@@ -1412,7 +1412,15 @@ void Player::set_paused(bool p) {
 
 bool Player::buffering(int* percent) const {
 	if(vlc_) return vlc_->buffering(percent);
-	if (percent) *percent = buffer_percent_;
+	if (percent) {
+		if (state_ == State::Playing && buffering_) {
+			double target = seek_refill_ ? 0.5 : opts_.live_tv ? 2.0 : std::max(kBufferTargets[stalls_], start_target_);
+			double vbuf = (video_stream_ >= 0) ? vq_.duration() : (aq_.duration() + queued_audio_seconds());
+			*percent = target > 0 ? std::clamp(int(vbuf / target * 100.0), 0, 100) : int(buffer_percent_);
+		} else {
+			*percent = buffer_percent_;
+		}
+	}
 	return state_ == State::Opening || (state_ == State::Playing && buffering_);
 }
 
@@ -1433,18 +1441,20 @@ void Player::update_buffering() {
 	bool has_v = video_stream_ >= 0, has_a = audio_stream_ >= 0 && pcm_.is_open();
 	if (buffering_) {
 		double target = seek_refill_ ? 0.5 : opts_.live_tv ? 2.0 : std::max(kBufferTargets[stalls_], start_target_);
-		double vbuf = has_v ? vq_.duration() : 1e9, abuf = has_a ? aq_.duration() : 1e9;
-		double buf = std::min(vbuf, abuf);
-		buffer_percent_ = int(std::min(100.0, buf / target * 100));
+		double vbuf = has_v ? vq_.duration() : 1e9;
+		double abuf = has_a ? (aq_.duration() + queued_audio_seconds()) : 1e9;
+		double buf = has_v ? vbuf : abuf;
+		buffer_percent_ = target > 0 ? std::clamp(int(buf / target * 100.0), 0, 100) : 0;
 		bool have_frame;
 		{
 			std::lock_guard<std::mutex> lock(fq_m_);
 			have_frame = !has_v || !frames_.empty() || displayed_serial_ == vq_.serial();
 		}
-		// Also go on when memory is nearly full (a very high bitrate).
-		if (have_frame && (!seek_refill_ || !has_v || displayed_serial_ == vq_.serial()) && vdrop_ < 0 && (!has_a || queued_audio_seconds()>0 || audio_drained_) &&
-		    (eof_ || buf >= target || vq_.bytes() + aq_.bytes() > kMaxQueueBytes * 9 / 10)) {
-			if (stalls_ > 0) dlog("player: buffered %.1f s, playing again", buf);
+		bool audio_ready = !has_a || queued_audio_seconds() > 0 || aq_.count() > 0 || audio_drained_;
+		// Also go on when memory is nearly full (a very high bitrate) or we have enough buffer.
+		if (have_frame && (!seek_refill_ || !has_v || displayed_serial_ == vq_.serial()) && vdrop_ < 0 && audio_ready &&
+		    (eof_ || buf >= target || (buf >= 2.5 && stalls_ == 0) || vq_.bytes() + aq_.bytes() > kMaxQueueBytes * 9 / 10)) {
+			dlog("player: buffered %.1f s (target %.1f s), playing%s", buf, target, stalls_ > 0 ? " again" : "");
 			buffering_ = false;
 			seek_refill_ = false;
 			apply_run_state();
