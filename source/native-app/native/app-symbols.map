@@ -1,0 +1,13 @@
+/*
+ * Application symbol visibility policy for Nuvio Max'd PS5 executable.
+ *
+ * Keeps all application-defined symbols internal to the executable so that
+ * none are published into .dynsym as dynamic exports.
+ * The PS5 native converter (ps5-native-tool) requires all dynamic symbols
+ * to be undefined imports from system PRX/SDK stubs.
+ */
+
+{
+    local:
+        *;
+};

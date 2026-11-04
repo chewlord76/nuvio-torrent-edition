@@ -1,0 +1,36 @@
+# Build outputs and object files
+source/native-app/build/
+source/native-app/dist/
+*.o
+*.a
+*.d
+*.obj
+*.so
+
+# Downloaded dependency caches
+.deps/
+source/.deps/
+**/.deps/
+
+# GitHub Workflows (require workflow OAuth scope)
+.github/workflows/
+source/.github/workflows/
+
+# Release packages (hosted on GitHub Releases)
+READY_FOR_PS5/
+
+# Cache directories
+.cache/
+.nuvio-ps5-build-cache/
+__pycache__/
+*.pyc
+
+# Local logs and scratch
+*.log
+scratch/
+.system_generated/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
