@@ -145,8 +145,8 @@ See [release notes](RELEASE_NOTES.md), [source](SOURCE.md) and
 You need a jailbroken PS5 and compatible homebrew payloads, including a suitable
 kstuff setup and [ShadowMount+](https://github.com/drakmor/ShadowMountPlus).
 Follow the loader's instructions for your firmware. The project targets firmware
-9.00 and above where those tools work; coverage is incomplete and firmware below
-9.00 needs further testing. Homebrew loader compatibility does not establish
+13.60 and above where those tools work; coverage is incomplete and firmware below
+13.60 needs further testing. Homebrew loader compatibility does not establish
 HDR/audio compatibility.
 
 | 1.0.0.5 Torrent Edition download | Installation |
