@@ -733,10 +733,11 @@ void Player::demux_run() {
 
 void Player::do_seek(double target, bool switching_audio) {
 	const bool short_refill = state_ == State::Playing && !recovering_;
+	const bool torrent = TorrentStream::is_url(opts_.url);
 	// Promote a quick Matroska open to a seekable input on its demux thread.
 	// FFmpeg can load deferred cues here without discarding the decoders/tracks.
 	const bool was_quick = quick_.exchange(false);
-	if (was_quick && main_pb_) main_pb_->seekable = AVIO_SEEKABLE_NORMAL;
+	if (was_quick && main_pb_ && !torrent) main_pb_->seekable = AVIO_SEEKABLE_NORMAL;
 	if (fmt_->pb) { fmt_->pb->error = 0; fmt_->pb->eof_reached = 0; }
 	int64_t ts = int64_t((target + start_offset_) * AV_TIME_BASE);
 	// A playlist may begin its video a few milliseconds after its audio.
@@ -750,11 +751,15 @@ void Player::do_seek(double target, bool switching_audio) {
 	if (r < 0) {
 		dlog("player: seek to %.1f failed: %s", target, av_err(r).c_str());
 		if (seek_pending_) return; // a newer request superseded this attempt
-		if (was_quick && !recovering_) {
+		if (was_quick && !torrent && !recovering_) {
 			// Some Matroska inputs cannot load their index in place. The UI
 			// performs the old reopen fallback; never join this demux thread here.
 			reopen_target_ = target;
 			return;
+		}
+		if (torrent) {
+			dlog("player: torrent seek to %.1f not possible yet; continuing from current stream position", target);
+			vdrop_ = adrop_ = -1; seek_refill_ = false; buffering_ = false; apply_run_state(); return;
 		}
 		if(recovering_.exchange(false)) { fail("Decoder recovery could not seek this source. Choose another stream."); return; }
         if (switching_audio) { fail("Could not resynchronize the selected audio track. Restart playback or choose another stream."); return; }

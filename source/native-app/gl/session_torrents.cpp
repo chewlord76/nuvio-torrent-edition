@@ -487,19 +487,88 @@ void Session::torrent_activate(int index, bool secondary)
         open_entry(false);
         return;
     }
-    std::vector<std::string> actions = {"Choose file inside torrent to stream", "Stream default video file"};
+
+    bool has_resume = false;
+    double saved_pos = 0;
+    const json &res = jobj(torrent_state_, "resume");
+    if (res.is_object() && !entry.id.empty())
+    {
+        const std::string prefix = "torrent:" + entry.id + ":";
+        for (auto it = res.begin(); it != res.end(); ++it)
+        {
+            if (starts_with(it.key(), prefix) || it.key() == entry.id)
+            {
+                const double pos = jnum(it.value(), "position", 0);
+                if (pos > 5.0)
+                {
+                    has_resume = true;
+                    saved_pos = pos;
+                    break;
+                }
+            }
+        }
+    }
+
+    std::vector<std::string> actions;
+    if (has_resume)
+    {
+        actions.push_back("Resume from " + format_resume_time(saved_pos));
+        actions.push_back("Play from beginning");
+    }
+    else
+    {
+        actions.push_back("Stream default video file");
+    }
+    actions.push_back("Choose file inside torrent to stream");
     if (!entry.id.empty())
         actions.push_back("Remove from recent list");
-    open_dropdown(entry.name, actions, 0, [this, entry, open_entry](int pick) {
-        if (pick == 0)
+
+    open_dropdown(entry.name, actions, 0, [this, entry, open_entry, has_resume](int pick) {
+        int idx = pick;
+        if (has_resume)
+        {
+            if (idx == 0)
+            {
+                open_entry(false);
+                return;
+            }
+            if (idx == 1)
+            {
+                auto &res_map = torrent_state_["resume"];
+                if (res_map.is_object())
+                {
+                    const std::string prefix = "torrent:" + entry.id + ":";
+                    std::vector<std::string> to_del;
+                    for (auto it = res_map.begin(); it != res_map.end(); ++it)
+                    {
+                        if (starts_with(it.key(), prefix) || it.key() == entry.id)
+                            to_del.push_back(it.key());
+                    }
+                    for (const auto &k : to_del)
+                        res_map.erase(k);
+                    torrent_save();
+                    torrent_build();
+                }
+                open_entry(false);
+                return;
+            }
+            idx -= 2;
+        }
+        else
+        {
+            if (idx == 0)
+            {
+                open_entry(false);
+                return;
+            }
+            idx -= 1;
+        }
+
+        if (idx == 0)
         {
             open_entry(true);
         }
-        else if (pick == 1)
-        {
-            open_entry(false);
-        }
-        else if (pick == 2 && !entry.id.empty())
+        else if (idx == 1 && !entry.id.empty())
         {
             auto &rec = torrent_state_["recent"];
             if (rec.is_array())
