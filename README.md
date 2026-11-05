@@ -1,5 +1,4 @@
 <p align="center">
-  <img src="sce_sys/icon0.png" alt="MAX'D Nuvio edition app icon" width="176" height="176">
 </p>
 
 <h1 align="center">Nuvio (Torrent Edition) for PS5</h1>
