@@ -1255,8 +1255,12 @@ void connect_peer(Torrent* t, const sockaddr_in& a, double now) {
 	int one = 1;
 	setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
 #endif
-	int rcv = 512 * 1024;
+	int rcv = 2 * 1024 * 1024;
 	setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+#ifdef TCP_NODELAY
+	int nodelay = 1;
+	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+#endif
 	auto p = std::make_unique<Peer>();
 	p->fd = fd;
 	p->addr = a;
@@ -1333,6 +1337,12 @@ void accept_peers(double now) {
 			continue;
 		}
 		set_nonblocking(fd);
+		int rcv = 2 * 1024 * 1024;
+		setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+#ifdef TCP_NODELAY
+		int nodelay = 1;
+		setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+#endif
 		auto p = std::make_unique<Peer>();
 		p->fd = fd;
 		p->addr = a;
@@ -1537,7 +1547,8 @@ void upkeep(Torrent* t, double now) {
 		if (late) p->max_reqs = std::max(!t->waiting_readers.empty() ? 24 : 12, p->max_reqs * 3 / 4);
 		// Peers that keep us waiting make room for others, when there are others.
 		bool others = !t->candidates.empty();
-		if (others && p->peer_choking && p->am_interested && now - p->choked_since > kChokedTimeout) {
+		double choked_limit = (active < 15) ? 15.0 : kChokedTimeout;
+		if (others && p->peer_choking && p->am_interested && now - p->choked_since > choked_limit) {
 			drop_peer(t, p, "kept us choked");
 			continue;
 		}
@@ -1586,7 +1597,8 @@ void upkeep(Torrent* t, double now) {
 	// Speeds, once a second
 	if (now - t->rate_at >= 1) {
 		double dt = now - t->rate_at;
-		t->rate = t->rate_at > 0 ? t->bytes_window / dt : 0;
+		double current_speed = t->rate_at > 0 ? t->bytes_window / dt : 0;
+		t->rate = (t->rate > 0) ? (t->rate * 0.7 + current_speed * 0.3) : current_speed;
 		t->bytes_window = 0;
 		t->rate_at = now;
 		for (auto& up : t->peers) {
@@ -1594,9 +1606,9 @@ void upkeep(Torrent* t, double now) {
 			p->rate = p->bytes_window / dt;
 			p->bytes_window = 0;
 			// Maintain generous pipeline for high throughput streaming
-			int base_reqs = !t->waiting_readers.empty() ? 32 : 16;
-			int want = int(p->rate * 2.5 / kBlock) + base_reqs;
-			p->max_reqs = std::max(base_reqs, std::min({want, 300, p->reqq}));
+			int base_reqs = !t->waiting_readers.empty() ? 64 : 24;
+			int want = int(p->rate * 3.0 / kBlock) + base_reqs;
+			p->max_reqs = std::max(base_reqs, std::min({want, 400, p->reqq}));
 		}
 		if (now >= t->next_log) {
 			t->next_log = now + 10;
@@ -2245,7 +2257,7 @@ const char* kWebDropHtml = R"HTML(<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nuvio Max'd · PS5 Torrent Stream Drop</title>
+<title>Nuvio with Torrents · PS5 Torrent Stream Drop</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -2266,7 +2278,7 @@ const char* kWebDropHtml = R"HTML(<!DOCTYPE html>
 </head>
 <body>
 <div class="wrap">
-  <h1>Nuvio Max'd · PS5 Torrent Drop</h1>
+  <h1>Nuvio with Torrents · PS5 Torrent Drop</h1>
   <p class="sub">Stream any magnet link or .torrent file immediately on your PS5 while it downloads.</p>
   <div class="card">
     <h2>1. Paste Magnet Link or .torrent URL</h2>
@@ -2997,6 +3009,9 @@ Stats Engine::stats(const std::string& hex) {
 	s.known_peers = int(t->known.size());
 	s.incoming = impl().mapped_port.load() > 0;
 	s.download_rate = t->rate;
+	if (s.download_rate <= 0 && t->bytes_window > 0 && now_seconds() > t->rate_at) {
+		s.download_rate = t->bytes_window / (now_seconds() - t->rate_at);
+	}
 	if (t->has_meta && t->file >= 0) {
 		const FileInfo& f = t->files[size_t(t->file)];
 		if (f.size > 0) {
@@ -3053,6 +3068,27 @@ void Engine::close_reader(const std::shared_ptr<Torrent>& t, int reader_id) {
     t->waiting_readers.erase(reader_id);
 	t->last_reader = now_seconds();
 	t->wanted_dirty = true;
+}
+
+int Engine::reader_wait_progress(const std::shared_ptr<Torrent>& t, int reader_id) {
+	if (!t) return -1;
+	Impl& I = impl();
+	std::lock_guard<std::mutex> lock(I.mu);
+	int piece = -1;
+	auto wit = t->waiting_readers.find(reader_id);
+	if (wit != t->waiting_readers.end()) {
+		piece = wit->second.piece;
+	} else {
+		auto rit = t->readers.find(reader_id);
+		if (rit != t->readers.end() && t->plen > 0) {
+			piece = int(rit->second / t->plen);
+		}
+	}
+	if (piece < 0 || piece >= t->npieces) return -1;
+	if (t->have.size() > size_t(piece) && t->have[size_t(piece)]) return 100;
+	auto ait = t->active.find(piece);
+	if (ait == t->active.end() || ait->second.got.empty()) return 0;
+	return std::clamp(int(ait->second.got_count * 100 / ait->second.got.size()), 0, 99);
 }
 
 int Engine::read(const std::shared_ptr<Torrent>& t, int reader_id, int file_idx, int64_t pos, uint8_t* buf, int n,

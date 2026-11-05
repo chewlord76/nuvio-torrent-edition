@@ -48,7 +48,7 @@ void init(const std::string& directory, const std::string& version) {
     nlohmann::json previous; load_json(root+"/runtime.json",previous);
     rotate("runtime.json","runtime-previous.json"); rotate("boot-current.txt","boot-previous.txt"); rotate("crash-current.txt","crash-previous.txt");
     const bool clean=(previous.is_object() && previous.contains("cleanExit") && previous["cleanExit"].is_boolean() && previous["cleanExit"].get<bool>());
-    write_file(root+"/boot-current.txt","Nuvio Max'd "+version+"\nPrevious run recorded a clean exit: "+(clean ? "yes\n" : "no or unknown\n")+"Diagnostics omit stream URLs, account data and title names.\n");
+    write_file(root+"/boot-current.txt","Nuvio with Torrents "+version+"\nPrevious run recorded a clean exit: "+(clean ? "yes\n" : "no or unknown\n")+"Diagnostics omit stream URLs, account data and title names.\n");
     crash_fd=::open((root+"/crash-current.txt").c_str(),O_WRONLY|O_CREAT|O_TRUNC,0600); handling=0;
     for(int signum : {SIGABRT,SIGSEGV,SIGBUS,SIGILL,SIGFPE}) std::signal(signum,crash);
     current={{"version",version},{"cleanExit",false},{"phase","boot"}};

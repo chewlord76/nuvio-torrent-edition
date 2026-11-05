@@ -385,7 +385,7 @@ void draw_boot_mark(hui::gfx::DrawList &list, const Env &env, float glow, float 
     if (mark != 0)
         list.image(mark, {cx - 72.0f, cy - 72.0f, 144.0f, 144.0f}, kFullUv, Color::rgb(0xffffff));
     if (env.fonts.semibold.font != nullptr)
-        text(list, env.fonts.semibold, "Nuvio Max'd", cx, cy + 156.0f, 48.0f,
+        text(list, env.fonts.semibold, "Nuvio with Torrents", cx, cy + 156.0f, 48.0f,
              Color::rgb(0xffffff), Align::center);
     list.pop_transform();
 }
@@ -496,7 +496,7 @@ void draw_release_notes(hui::gfx::DrawList& list, const Env& env, const std::str
     const Rect card{360,135,1200,810};
     list.bordered_rect(card,36,Color::rgb(0x101723),2,theme::hairline);
     text(list,env.fonts.display,"What’s new",card.x+60,card.y+88,46,theme::ink);
-    text(list,env.fonts.semibold,"Nuvio Max’d " + version,card.x+60,card.y+136,28,theme::accent_soft);
+    text(list,env.fonts.semibold,"Nuvio with Torrents " + version,card.x+60,card.y+136,28,theme::accent_soft);
     float y=card.y+210;
     for(const char* note : release_note_items) {
         list.circle(card.x+67,y-10,4,theme::accent_soft);

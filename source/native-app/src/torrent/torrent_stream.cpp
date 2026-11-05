@@ -112,6 +112,16 @@ TorrentStream* TorrentStream::of(AVIOContext* pb) {
 	return is_ours(pb) ? static_cast<TorrentStream*>(pb->opaque) : nullptr;
 }
 
+int TorrentStream::wait_progress(AVIOContext* pb) {
+	if (auto* ts = of(pb)) return ts->wait_progress();
+	return -1;
+}
+
+int TorrentStream::wait_progress() const {
+	if (!t_ || reader_ <= 0) return -1;
+	return bt::Engine::get().reader_wait_progress(t_, reader_);
+}
+
 void TorrentStream::close_avio(AVIOContext** pb) {
 	if (!pb || !*pb) return;
 	if (auto* ts = of(*pb)) {

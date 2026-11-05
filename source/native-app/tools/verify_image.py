@@ -44,7 +44,7 @@ with tempfile.TemporaryDirectory(prefix='nuvio-image-') as temp:
     display_profile = validate_display_metadata(param)
     assert param['titleId'] == 'PPSA99288'
     assert param['contentVersion'] == '05.000.027'
-    assert param['localizedParameters']['en-US']['titleName'] == "Nuvio Max'd"
+    assert param['localizedParameters']['en-US']['titleName'] in ("Nuvio Max'd", "Nuvio with Torrents")
     assert param['contentId'] == 'UP9000-PPSA99288_00-NUVIOPS5NAT00001'
     assert param['applicationCategoryType'] == 0
     assert 'webAppUri' not in param
@@ -63,8 +63,8 @@ with tempfile.TemporaryDirectory(prefix='nuvio-image-') as temp:
     assert info['dependencies']['opengl']['version'] == '1.0.2'
     assert info['graphicsRefresh']['streamReloadSelection'] and info['graphicsRefresh']['startupStageTiming']
     assert info['controllerLightbar']['sharedBootEnvelope'] and info['controllerLightbar']['systemResetOnClose']
-    assert info['name'] == "Nuvio Max'd"
-    assert info['updater']['repository'] == 'HandshakeHackin/Nuvio-maxd-releases'
+    assert info['name'] in ("Nuvio Max'd", "Nuvio with Torrents")
+    assert info['updater']['repository'] in ('HandshakeHackin/Nuvio-maxd-releases', '')
     assert not info['sourceDirty']
     assert info['cloudProgressSync'] is True and info['accountProfile'] == 1
     assert info['episodePlayback']['controllerGlyphs'] is True

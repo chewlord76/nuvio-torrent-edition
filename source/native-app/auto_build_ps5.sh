@@ -310,7 +310,7 @@ fi
 export NUVIO_ALLOW_UNCONFIGURED_PROVIDERS=1
 export BUILD_DIR="$CACHE_ROOT/build-work"
 cd "$SCRIPT_DIR"
-bash "$SCRIPT_DIR/gl/build.sh" PPSA99288 "Nuvio Max'd"
+bash "$SCRIPT_DIR/gl/build.sh" PPSA99288 "Nuvio with Torrents"
 
 READY_DIR="$REPO_ROOT/READY_FOR_PS5"
 rm -rf "$READY_DIR"

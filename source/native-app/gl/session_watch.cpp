@@ -628,7 +628,7 @@ void Session::watch_update()
 
     int pct = 0;
     const bool buffering = player_.buffering(&pct);
-    if (t_visible_ && (launch_open || buffering))
+    if (t_visible_)
         torrent_stats_poll();
 
     if (launch_open)

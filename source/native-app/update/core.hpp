@@ -7,8 +7,8 @@
 #include <sys/stat.h>
 namespace nuvio_update {
 using Json = nlohmann::json;
-inline constexpr const char* repository = "HandshakeHackin/Nuvio-maxd-releases";
-inline constexpr const char* feed = "https://api.github.com/repos/HandshakeHackin/Nuvio-maxd-releases/releases?per_page=20";
+inline constexpr const char* repository = "";
+inline constexpr const char* feed = "";
 inline constexpr const char* title_id = "PPSA99288";
 inline constexpr const char* current_version = "1.0.0.5";
 inline constexpr std::uint64_t max_image_bytes = 512ull << 20;

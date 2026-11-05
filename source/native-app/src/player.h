@@ -173,6 +173,7 @@ private:
 	void fail(const std::string& msg);
 	bool open_stream_codec(int stream, AVCodecContext** out);
 	void handle_subtitle_packet(AVPacket* pkt);
+	double current_buffer_target() const;
 	void update_buffering();
 	double clock_locked();
 	void set_clock_running(bool running);

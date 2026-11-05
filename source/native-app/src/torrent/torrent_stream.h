@@ -25,6 +25,7 @@ public:
 	static AVIOContext* open_avio(const std::string& url, const std::atomic<bool>* abort, std::string* error);
 	static bool is_ours(AVIOContext* pb);
 	static TorrentStream* of(AVIOContext* pb);
+	static int wait_progress(AVIOContext* pb);
 	static void set_read_interrupt(AVIOContext* pb, const std::atomic<bool>* interrupt) {
 		if (auto* ts = of(pb)) ts->read_interrupt_ = interrupt;
 	}
@@ -34,6 +35,7 @@ public:
 	std::string peek(size_t n);
 	std::string failure() const { return failure_; }
 	int64_t size() const { return size_; }
+	int wait_progress() const;
 
 	int read(uint8_t* buf, int n);
 	int64_t seek(int64_t offset, int whence);

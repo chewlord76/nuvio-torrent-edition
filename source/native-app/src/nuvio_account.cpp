@@ -413,7 +413,7 @@ LinkCode link_create() {
     static const char hex[] = "0123456789abcdef";
     for (auto b : random) { pairing.nonce += hex[b >> 4]; pairing.nonce += hex[b & 15]; }
     body = json{{"p_device_nonce", pairing.nonce}, {"p_redirect_base_url", link_base},
-                {"p_device_type", "tv"}, {"p_device_name", "Nuvio Max'd (PS5)"}};
+                {"p_device_type", "tv"}, {"p_device_name", "Nuvio with Torrents (PS5)"}};
     h = request("/rest/v1/rpc/start_device_login_session", &body, pairing.token);
     if (missing(h)) {
         body.erase("p_device_type"); body["p_redirect_base_url"] = legacy_base;

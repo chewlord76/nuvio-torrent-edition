@@ -416,6 +416,8 @@ void Player::demux_run() {
 		avformat_close_input(&fmt_);
 		return;
 	}
+	if (main_pb_) main_pb_->seekable = AVIO_SEEKABLE_NORMAL;
+	if (fmt_->pb) fmt_->pb->seekable = AVIO_SEEKABLE_NORMAL;
 	if (fmt_->start_time != AV_NOPTS_VALUE) start_offset_ = double(fmt_->start_time) / AV_TIME_BASE;
 	if (fmt_->duration != AV_NOPTS_VALUE && fmt_->duration > 0) duration_ = double(fmt_->duration) / AV_TIME_BASE;
 
@@ -737,8 +739,12 @@ void Player::do_seek(double target, bool switching_audio) {
 	// Promote a quick Matroska open to a seekable input on its demux thread.
 	// FFmpeg can load deferred cues here without discarding the decoders/tracks.
 	const bool was_quick = quick_.exchange(false);
-	if (was_quick && main_pb_ && !torrent) main_pb_->seekable = AVIO_SEEKABLE_NORMAL;
-	if (fmt_->pb) { fmt_->pb->error = 0; fmt_->pb->eof_reached = 0; }
+	if (main_pb_) main_pb_->seekable = AVIO_SEEKABLE_NORMAL;
+	if (fmt_->pb) {
+		fmt_->pb->seekable = AVIO_SEEKABLE_NORMAL;
+		fmt_->pb->error = 0;
+		fmt_->pb->eof_reached = 0;
+	}
 	int64_t ts = int64_t((target + start_offset_) * AV_TIME_BASE);
 	// A playlist may begin its video a few milliseconds after its audio.
 	// HLS refuses timestamps before its first video packet, even for target 0.
@@ -751,15 +757,11 @@ void Player::do_seek(double target, bool switching_audio) {
 	if (r < 0) {
 		dlog("player: seek to %.1f failed: %s", target, av_err(r).c_str());
 		if (seek_pending_) return; // a newer request superseded this attempt
-		if (was_quick && !torrent && !recovering_) {
+		if (!recovering_) {
 			// Some Matroska inputs cannot load their index in place. The UI
 			// performs the old reopen fallback; never join this demux thread here.
 			reopen_target_ = target;
 			return;
-		}
-		if (torrent) {
-			dlog("player: torrent seek to %.1f not possible yet; continuing from current stream position", target);
-			vdrop_ = adrop_ = -1; seek_refill_ = false; buffering_ = false; apply_run_state(); return;
 		}
 		if(recovering_.exchange(false)) { fail("Decoder recovery could not seek this source. Choose another stream."); return; }
         if (switching_audio) { fail("Could not resynchronize the selected audio track. Restart playback or choose another stream."); return; }
@@ -1414,13 +1416,27 @@ void Player::set_paused(bool p) {
 	apply_run_state();
 }
 
+double Player::current_buffer_target() const {
+	const bool torrent = TorrentStream::is_url(opts_.url);
+	if (seek_refill_) return torrent ? 2.5 : 0.5;
+	if (opts_.live_tv) return 2.0;
+	return std::max(kBufferTargets[stalls_], start_target_);
+}
+
 bool Player::buffering(int* percent) const {
 	if(vlc_) return vlc_->buffering(percent);
 	if (percent) {
 		if (state_ == State::Playing && buffering_) {
-			double target = seek_refill_ ? 0.5 : opts_.live_tv ? 2.0 : std::max(kBufferTargets[stalls_], start_target_);
+			double target = current_buffer_target();
 			double vbuf = (video_stream_ >= 0) ? vq_.duration() : (aq_.duration() + queued_audio_seconds());
-			*percent = target > 0 ? std::clamp(int(vbuf / target * 100.0), 0, 100) : int(buffer_percent_);
+			int pct = target > 0 ? std::clamp(int(vbuf / target * 100.0), 0, 100) : int(buffer_percent_);
+			if (vbuf < 0.25) {
+				int wp = TorrentStream::wait_progress(main_pb_);
+				if (wp >= 0) {
+					pct = std::max(pct, std::min(wp, 95));
+				}
+			}
+			*percent = pct;
 		} else {
 			*percent = buffer_percent_;
 		}
@@ -1444,11 +1460,18 @@ void Player::update_buffering() {
     if(pcm_failed) { fail("The PS5 audio output stopped. Try stereo audio output in Settings."); return; }
 	bool has_v = video_stream_ >= 0, has_a = audio_stream_ >= 0 && pcm_.is_open();
 	if (buffering_) {
-		double target = seek_refill_ ? 0.5 : opts_.live_tv ? 2.0 : std::max(kBufferTargets[stalls_], start_target_);
+		double target = current_buffer_target();
 		double vbuf = has_v ? vq_.duration() : 1e9;
 		double abuf = has_a ? (aq_.duration() + queued_audio_seconds()) : 1e9;
 		double buf = has_v ? vbuf : abuf;
-		buffer_percent_ = target > 0 ? std::clamp(int(buf / target * 100.0), 0, 100) : 0;
+		int pct = target > 0 ? std::clamp(int(buf / target * 100.0), 0, 100) : 0;
+		if (buf < 0.25) {
+			int wp = TorrentStream::wait_progress(main_pb_);
+			if (wp >= 0) {
+				pct = std::max(pct, std::min(wp, 95));
+			}
+		}
+		buffer_percent_ = pct;
 		bool have_frame;
 		{
 			std::lock_guard<std::mutex> lock(fq_m_);

@@ -65,9 +65,6 @@ enum SettingIndex
     kCalmBackgrounds,
     kAddAddon,
     kReload,
-    kDonation,
-    kInstallSource,
-    kUpdates,
     kExit,
     kConsoleLights,
     kReadAhead,
@@ -136,7 +133,7 @@ bool Session::init(const std::string &base_dir, const std::string &data_dir, hui
     renderer_ = renderer;
     make_dirs(data_dir_);
     log_open(data_dir_ + "/log.txt");
-    dlog("app: Nuvio Max'd %s (native)", nuvio_update::current_version);
+    dlog("app: Nuvio with Torrents %s (native)", nuvio_update::current_version);
     http_init(base_dir_ + "/ca-bundle.crt");
     g_tasks.start(6);
     provider_tasks_.start(2);
@@ -155,7 +152,8 @@ bool Session::init(const std::string &base_dir, const std::string &data_dir, hui
     load_prefs();
     bt::Engine::get().set_cache_bytes(static_cast<int64_t>(prefs_.torrent_cache_gb) << 30);
     release_notes_version=nuvio_update::current_version;
-    release_notes_open=should_show_release_notes(prefs_.seen_release,release_notes_version);
+    release_notes_open=false;
+    prefs_.install_source="local";
     if (!nuvio_account_init(base_dir_ + "/account-config.json", data_dir_))
         say("Could not load Nuvio account configuration", 8.0, true);
     prefs_.auth_key = nuvio_profile_key();
@@ -674,7 +672,7 @@ void Session::set_display_configuration(unsigned width, unsigned height, bool fa
     dlog("display: PS5 configured %ux%u at startup; render %dx%d SDR 8-bit; accepted refresh %d Hz; fallback %d",
          width, height, output_w_, output_h_, output_hz_, fallback);
     if (fallback)
-        say("Display fallback active. Check Display output in Settings; reopen Nuvio Max'd after changing it.", 12.0, true);
+        say("Display fallback active. Check Display output in Settings; reopen Nuvio with Torrents after changing it.", 12.0, true);
 }
 
 void Session::refresh_settings()
@@ -722,7 +720,7 @@ void Session::refresh_settings()
         settings.rows[kServer].help += " Tracker unavailable. Using Nuvio Sync until it reconnects.";
     const char* display_labels[] = {"Follow PS5", "1080p", "1440p", "4K"};
     set(kDisplay, Kind::value, "Display output", display_labels[display_output_preference(prefs_.display_output) + 1],
-        "Follow the PS5's output resolution, or choose an override. Close and reopen Nuvio Max'd to apply a change.");
+        "Follow the PS5's output resolution, or choose an override. Close and reopen Nuvio with Torrents to apply a change.");
     set(kHdr, Kind::value, "HDR playback", prefs_.native_hdr ? "Native HDR10 (experimental)" : "Convert HDR to SDR",
         "Native HDR10 keeps PQ colour and highlights on a compatible TV. SDR conversion changes the colour range. Applies to the next stream.");
     set(kPlaybackEngine, Kind::value, "Playback engine", prefs_.vlc_player ? "VLC 3.0.24 (experimental)" : prefs_.evo_player ? "EVO Player 0.13.0 (experimental)" : "Nuvio native",
@@ -756,7 +754,7 @@ void Session::refresh_settings()
     set(kCountdown, Kind::value, "Next-episode countdown", std::to_string(prefs_.next_episode_seconds)+" s", "Countdown during credits or when an episode ends, once a matching stream is ready. Pause or buffering holds the countdown; Circle cancels it.");
     set(kReducedMotion, Kind::toggle, "Reduced motion", "", "Make focus, scrolling and menu transitions immediate; keep decorative backgrounds still.", prefs_.reduced_motion);
     set(kHighContrast, Kind::toggle, "Higher contrast", "", "Brighter interface text and stronger panel and focus boundaries. The video picture is unchanged.", prefs_.high_contrast);
-    set(kReleaseNotes, Kind::action, "What’s new", "Nuvio Max’d " + std::string(nuvio_update::current_version), "Read the changes in this version again.");
+    set(kReleaseNotes, Kind::action, "What’s new", "Nuvio with Torrents " + std::string(nuvio_update::current_version), "Read the changes in this version.");
     set(kDiagnostics, Kind::action, "Playback diagnostics", "", "Show where this app saves playback, frame timing and crash diagnostics for troubleshooting.");
     set(kAudioLangs, Kind::value, "Audio languages", prefs_.audio_langs.empty() ? "Default" : prefs_.audio_langs,
         "Preferred audio track language, for example \"eng\". Leave empty for the default.");
@@ -771,14 +769,8 @@ void Session::refresh_settings()
             ? "A Stremio addon or Nuvio provider manifest URL. Manage providers on the Addons page."
             : std::to_string(prefs_.extra_addons.size()) + " added here.");
     set(kReload, Kind::action, "Reload addons and catalogs", "", "Fetch every addon and catalog again.");
-    const auto update = updater_.status();
     set(kMetadataCredits, Kind::action, "Metadata credits", "TMDB", "This product uses the TMDB API but is not endorsed or certified by TMDB.");
-    set(kDonation, Kind::action, "Support on Ko-fi", "", "Optional support for development. Scan the QR code with your phone.");
-    set(kInstallSource, Kind::value, "Install source", install_source_label(prefs_.install_source),
-        "Where you installed Nuvio Max'd. Update reminders use this choice; change it if you switch install methods.");
-    set(kUpdates, Kind::value, "App updates", update.phase == AppUpdate::Phase::idle ? "Nuvio Max'd " + std::string(nuvio_update::current_version) + " (experimental)" : update.message,
-        update_destination(prefs_.install_source));
-    set(kExit, Kind::action, "Exit Nuvio Max'd", "", "Close the app and go back to the home screen.");
+    set(kExit, Kind::action, "Exit Nuvio with Torrents", "", "Close the app and go back to the home screen.");
     set(kConsoleLights, Kind::toggle, "Console light sync", "", "Fade the console lights with the controller while Nuvio is open. Console colours are approximate. Unsupported systems leave their lights unchanged. Turning off restores the previous state.", prefs_.console_light_sync);
     const char* light_status = console_light_status_==ConsoleLights::Status::active ? "Sync active." :
         console_light_status_==ConsoleLights::Status::unavailable ? "Console light access is unavailable on this system." :
@@ -794,7 +786,7 @@ void Session::refresh_settings()
     group("Playback", {kSeek, kShoulderSeek, kCountdown, kAutoplay, kSkipSegments, kReadAhead});
     group("Appearance & Lighting", {kReducedMotion,kHighContrast,kUiSounds,kCalmBackgrounds,kConsoleLights});
     group("Addons", {kSettingTorrents,kTorrentCache,kTorrentHub,kAddAddon,kReload});
-    group("App & Updates", {kReleaseNotes,kDiagnostics,kMetadataCredits,kDonation,kInstallSource,kUpdates,kExit});
+    group("App", {kReleaseNotes,kDiagnostics,kMetadataCredits,kExit});
     changed_ |= kSettings;
 }
 
@@ -885,7 +877,7 @@ void Session::settings_activate(int row)
             prefs_.display_output = display_output_preference_name(i - 1);
             save_prefs();
             cue(hui::audio::Cue::saved);
-            say("Display choice saved. Close and reopen Nuvio Max'd to apply it.", 8.0);
+            say("Display choice saved. Close and reopen Nuvio with Torrents to apply it.", 8.0);
             refresh_settings();
         });
         break;
@@ -895,7 +887,7 @@ void Session::settings_activate(int row)
             if (i != 0 && i != 1) return;
             prefs_.display_refresh = i == 1 ? 120 : 60;
             save_prefs(); refresh_settings(); cue(hui::audio::Cue::saved);
-            say("Refresh choice saved. Close and reopen Nuvio Max'd to apply it.",8.0);
+            say("Refresh choice saved. Close and reopen Nuvio with Torrents to apply it.",8.0);
         });
         break;
     case kSubLangs:
@@ -1019,22 +1011,10 @@ void Session::settings_activate(int row)
             prefs_.audio_output_mode=i==0?"pcm":i==1?"auto":"bitstream";save_prefs();refresh_settings();});
         dropdown.message="Auto uses only formats advertised by the HDMI receiver. Bitstream tries a compressed port even if capability detection is unavailable. Refused ports fall back to PCM. TrueHD and DTS-HD keep decoded lossless PCM.";break;
     }
-    case kDonation: {
-        sign_in=SignInState{};sign_in.link_only=true;sign_in.title="Support on Ko-fi";
-        sign_in.link=donation_link;sign_in.cancel_label="Close";
-        std::uint8_t temp[qrcodegen_BUFFER_LEN_MAX],qr[qrcodegen_BUFFER_LEN_MAX];
-        if(qrcodegen_encodeText(donation_url,temp,qr,qrcodegen_Ecc_MEDIUM,qrcodegen_VERSION_MIN,20,qrcodegen_Mask_AUTO,true)) {
-            sign_in.qr_size=qrcodegen_getSize(qr);sign_in.qr_modules.resize(sign_in.qr_size*sign_in.qr_size);
-            for(int y=0;y<sign_in.qr_size;++y)for(int x=0;x<sign_in.qr_size;++x)
-                sign_in.qr_modules[y*sign_in.qr_size+x]=qrcodegen_getModule(qr,x,y);
-        }
-        sign_in_open=true;break;
-    }
     case kMetadataCredits:
         open_dropdown("Metadata credits",{"Close"},0,[](int){});
         dropdown.message="This product uses the TMDB API but is not endorsed or certified by TMDB. Movie and TV metadata: https://www.themoviedb.org/";
         break;
-    case kInstallSource: install_source_menu(); break;
     case kReleaseNotes: release_notes_open=true; release_notes_version=nuvio_update::current_version; break;
     case kDiagnostics: say("Diagnostics: " + data_dir_ + "/runtime.json, boot-current.txt and crash-current.txt. Previous run files are kept too.", 15.0); break;
     case kAudioLangs:
@@ -1122,9 +1102,6 @@ void Session::settings_activate(int row)
         break;
     case kReload:
         addons_reload();
-        break;
-    case kUpdates:
-        update_menu();
         break;
     case kExit:
         exit_ = true;

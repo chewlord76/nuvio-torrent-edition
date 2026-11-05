@@ -59,7 +59,7 @@ Json api(const char* route,const Json& body) {
 }
 void notify(const std::string& text) {
     struct Request {unsigned char reserved[45];char message[3075];} r{};
-    std::snprintf(r.message,sizeof(r.message),"Nuvio Max'd: %s",text.c_str());sceKernelSendNotificationRequest(0,&r,sizeof(r),0);
+    std::snprintf(r.message,sizeof(r.message),"Nuvio with Torrents: %s",text.c_str());sceKernelSendNotificationRequest(0,&r,sizeof(r),0);
 }
 bool capability(const Json& j,const char* value) {
     if(!j.is_object() || !j.contains("capabilities") || !j["capabilities"].is_array())return false;
@@ -102,7 +102,7 @@ int run() {
     }
     const Json title={{"title_id",title_id}};
     auto path=installed_image(api("games/info",title));
-    if(path.empty()) {send({{"state","error"},{"message","Nuvio Max'd must be installed as an FFPFSC in a managed /homebrew/ folder"}});return 1;}
+    if(path.empty()) {send({{"state","error"},{"message","Nuvio with Torrents must be installed as an FFPFSC in a managed /homebrew/ folder"}});return 1;}
     if(probe) {
         if(!send({{"state","ready"}}) || !read_line(line,300) || line!="install" ||
            !send({{"state","closing"}}) || !read_line(line,120) || line!="exit") {
@@ -144,7 +144,7 @@ int run() {
     const auto scan=api("scan",{{"reset_attempts",false}});
     if(!error.empty()) notify(error);
     else if(!scan.is_object() || scan.value("status",-1)!=0 || !scan.value("scan_queued",false))notify("Update installed and backup saved. Restart ShadowMount+ to refresh the app.");
-    else notify("Update installed and backup saved. ShadowMount+ rescan requested; reopen Nuvio Max'd after it finishes.");
+    else notify("Update installed and backup saved. ShadowMount+ rescan requested; reopen Nuvio with Torrents after it finishes.");
     return 0;
 }
 }

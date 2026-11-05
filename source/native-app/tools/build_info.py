@@ -31,7 +31,7 @@ except (subprocess.CalledProcessError, ValueError):
 display_profile = validate_display_metadata(json.loads(
     (Path(sys.argv[1]).parent / 'sce_sys/param.json').read_text()))
 info = {
-    'name': "Nuvio Max'd",
+    'name': "Nuvio with Torrents",
     'version': '1.0.0.5-native',
     'releaseChannel': 'release',
     'titleId': sys.argv[2],
@@ -48,7 +48,7 @@ info = {
     'sourceCommit': source_commit,
     'sourceDirty': source_dirty,
     'dependencies': json.loads((root / 'dependencies.json').read_text()),
-    'updater': {'repository': 'HandshakeHackin/Nuvio-maxd-releases', 'format': 'FFPFSC', 'helper': 'nuvio-updater.elf', 'shadowmountApi': '1.7 / public HTTP API v1', 'automaticInstallHardwareVerified': False},
+    'updater': {'repository': '', 'format': 'FFPFSC', 'helper': 'nuvio-updater.elf', 'shadowmountApi': '1.7 / public HTTP API v1', 'automaticInstallHardwareVerified': False},
     'userExperienceUpdates': {'versionChangelog': True, 'installSourceSelector': True, 'optionalDonationQr': True, 'sourceAwareUpdateReminders': True, 'startupUpdateCheck': True, 'subtitleStylingPreview': True, 'customSeekIntervals': True, 'customEpisodeCountdown': True, 'reducedMotion': True, 'higherContrast': True, 'privateRuntimeAndCrashDiagnostics': True, 'backgroundLogging': True, 'calmerBackgrounds': 'optional, saved locally; video quality unchanged', 'nativePresentation': 'timestamp order with bounded source-frame catch-up', 'longWordWrapping': 'UTF-8 code-point boundaries', 'updaterBackup': 'retains previous verified image'},
     'playbackQualityUpdates': {'sampleClock': True, 'seekGate': True, 'decoderFailureReseek': True, 'surroundPcm': True, 'floatingPointAudio': 'stereo fallback only', 'preferredPcm': 'S16 48 kHz', 'explicitStereoDownmix': True, 'pcmLevelDiagnostics': True, 'pcmDeviceLatencyEstimateGrains': 2, 'audioStereoFallback': True, 'embeddedFirstSubtitleDefaults': True, 'manualSubtitleChoiceProtected': True, 'externalSubtitleReopenRecovery': True, 'libassStyledText': True, 'bitmapSubtitles': True, 'bundledCjkThaiFonts': True, 'packetSlabBytes': 268435456, 'packetHardBudgetBytes': 335544320, 'pcmRingSeconds': 2, 'hardwareVerified': False},
     'experimentalAv': {'driverOwnedHdrSwitch': True, 'pcmDefault': True, 'audioModes': ['pcm','auto','bitstream'], 'bitstreamCodecs': ['AC3','EAC3','DTS core'], 'trueHdDtsHd': 'decoded PCM; S16 output preferred for compatibility', 'autoHonorsStereo': True, 'hardwareVerified': False, 'driverPatchSha256': hashlib.sha256((root/'gl/scanout_driver_extension.inc').read_bytes()).hexdigest(), 'driverObjectSha256': hashlib.sha256(Path(sys.argv[3]).read_bytes()).hexdigest()},
@@ -61,7 +61,7 @@ info = {
     'trailers': {'entry': 'Options → Watch trailer', 'sources': ['addon metadata', 'TMDB', 'supported public YouTube formats'], 'browsingAutoplay': False, 'updatesWatchHistory': False, 'hardwareVerified': False},
     'recentSources': {'sessionOnly': True, 'profileScoped': True, 'torrentTtlSeconds': 300, 'directHttpTtlSeconds': 60, 'backgroundRefresh': True, 'reloadBypassesCache': True},
     'nativeSeekRecovery': {'retiresOldEofBeforeSeekGateRelease': True, 'queueAndSeekDiagnostics': True, 'fullCandidateHardwareVerified': False},
-    'nativeAudioSwitch': {'preservesPositionAndPause': True, 'retiresPreviousTrackPackets': True, 'reporterConfirmedTestBuild': '0.5.34.4', 'confirmation': 'https://github.com/HandshakeHackin/Nuvio-maxd-releases/issues/8#issuecomment-6294939778', 'fullCandidateHardwareVerified': False},
+    'nativeAudioSwitch': {'preservesPositionAndPause': True, 'retiresPreviousTrackPackets': True, 'reporterConfirmedTestBuild': '0.5.34.4', 'confirmation': '', 'fullCandidateHardwareVerified': False},
     'presentationTiming': {'source': 'VideoOut completed flip process timestamp', 'paths': ['GPU command', 'CPU submit'], 'minimumSamples': 3, 'maximumVideoLeadMs': 40, 'maximumSampleDelayMs': 100, 'staleAfterMs': 1000, 'physicalTvReceiverLatencyMeasured': False, 'hardwareVerified': False},
     'vlc': json.loads((root/'third_party/vlc/UPSTREAM.json').read_text()),
     'hardwareVerified': False,

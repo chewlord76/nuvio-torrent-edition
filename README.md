@@ -1,135 +1,137 @@
-<h1 align="center">Nuvio: Torrent Edition for PlayStation 5</h1>
+<p align="center">
+  <img src="assets/logo.png" width="180" height="180" alt="Nuvio with Torrents Icon" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+</p>
+
+<h1 align="center">Nuvio with Torrents</h1>
 
 <p align="center">
-  <strong>The Ultimate Native BitTorrent Streaming Media Center for Jailbroken PS5 consoles.</strong><br>
+  <strong>The Sovereign Native BitTorrent Streaming Powerhouse for PlayStation 5.</strong><br>
   <em>Engineered and maintained by <strong>chewlord76</strong>.</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/chewlord76/nuvio-torrent-edition/releases/latest"><img src="https://img.shields.io/github/v/release/chewlord76/nuvio-torrent-edition?color=7b5bf5&label=Release&style=flat-square" alt="Latest Release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square" alt="License: GPLv3"></a>
-  <a href="https://github.com/chewlord76/nuvio-torrent-edition"><img src="https://img.shields.io/badge/Platform-PS5%20(Prospero)-success?style=flat-square" alt="Platform: PS5"></a>
+  <a href="https://github.com/chewlord76/nuvio-with-torrents/releases/latest"><img src="https://img.shields.io/badge/Release-v2.5%20(Official%20Launch)-7b5bf5?style=for-the-badge&logo=playstation" alt="Latest Release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge" alt="License: GPLv3"></a>
+  <a href="https://github.com/chewlord76/nuvio-with-torrents"><img src="https://img.shields.io/badge/Platform-PS5%20(Prospero)-003791?style=for-the-badge&logo=playstation5" alt="Platform: PS5"></a>
+  <img src="https://img.shields.io/badge/Video-4K%20UHD%20HDR10-success?style=for-the-badge" alt="4K HDR10">
 </p>
 
 ---
 
 ## ⚡ Overview
 
-**Nuvio: Torrent Edition** is a groundbreaking, fully autonomous media streaming client created natively for the PlayStation 5. Unlike traditional console streaming players that rely on external companion servers, Debrid subscriptions, or separate computers running helper scripts, **Nuvio Torrent Edition features an integrated, high-performance C++ BitTorrent streaming engine running directly inside the PS5 application process**.
+**Nuvio with Torrents** is an uncompromising, fully autonomous media streaming powerhouse created natively for jailbroken PlayStation 5 consoles. 
 
-From ultra-high-bitrate 80+ GB 4K Blu-ray REMUXes to lightweight web releases, Nuvio Torrent Edition streams torrents and magnet links sequentially with instantaneous startup buffering, hardware-accelerated GPU rendering, and automatic HDR/SDR color pipelines.
+Unlike traditional console media centers that demand external companion servers, paid Real-Debrid subscriptions, or separate computers running streaming proxy scripts, **Nuvio with Torrents features a custom-engineered, multi-threaded C++ BitTorrent streaming engine running bare-metal inside the PS5 application process**.
 
----
-
-## 🚀 Key Features
-
-### 🧲 Integrated Native BitTorrent Streaming Engine
-* **Zero Companion Dependency**: Stream torrents and magnets completely standalone on your console. No PC, Docker container, or cloud debrid account required.
-* **Intelligent Sequential Readahead**: High-throughput memory-buffered sequential streaming pipeline designed specifically to support 40–100+ Mbps 4K UHD REMUX streams.
-* **Demand-Driven Piece Prioritization**: Pieces requested by the video reader are assigned immediate `#0` priority at the front of the swarm request queue, preventing playback starvation.
-* **Endgame Block Dispatching**: Eliminates slow-peer bottlenecks by concurrently scheduling pending pieces across active peers when approaching buffer thresholds.
-* **Protected Container Eviction**: Vital container metadata, indices, and stream headers are locked into cache, shielding them from eviction under heavy memory pressure.
-
-### 🌐 High-Speed Swarm Discovery & Routing
-* **Direct Numerical IP DHT Bootstrapping**: Direct socket routing into the global BitTorrent DHT network, completely circumventing console DNS lookup lag and ISP/router adblockers.
-* **Instant Peer Acquisition**: Initiates peer searches immediately upon handshaking the first live DHT node.
-* **Parallel Tracker Announcers**: Asynchronous UDP/HTTP tracker worker threads with resilient connection pooling.
-* **Tracker/PEX Routing Exchange**: Discovered tracker peers and Peer Exchange (PEX) nodes are instantly fed back into the DHT routing table for exponential swarm expansion.
-
-### 📱 Local Web Drop Companion Server
-* **Built-in HTTP Server (`:8088`)**: A lightweight web server runs directly on your PS5 (`http://<ps5-ip>:8088`).
-* **One-Click Mobile/PC Casting**: Scan the on-screen QR code with your phone or open the link on your PC to instantly drop `.torrent` files or paste magnet links straight to your TV.
-
-### 💾 Storage & USB Torrent Discovery
-* **Automatic Drive Scanning**: Automatically discovers local `.torrent` files on any connected USB storage (`/mnt/usb0` through `/mnt/usb7`) and internal console storage (`/data/torrents/`, `/data/`).
-* **Visual Management Hub**: Browse discovered files, review multi-file torrent layouts, select specific audio/video streams, or launch default features.
-* **Resume & Playback History**: Remembers your exact watch progress across sessions with quick **Resume** and **Play from beginning** controls.
-
-### 🎨 Visuals & Color Pipeline
-* **4K UHD & 60/120 Hz GPU Output**: True native-resolution rendering via Prospero AGC and OpenGL 4.6 shaders with hardware YUV conversion.
-* **Fast-Start Probe Optimization**: Capped container probing with universal quick-probe prevents demuxers from scanning 80+ GB file tails, launching 4K playback in seconds.
-* **Automatic HDR-to-SDR Tone Mapping**: If your TV or PS5 video output is in SDR mode (`0x80290003`), playback gracefully routes through high-precision ITU-R BT.1886 PQ luminance tone mapping and sRGB gamut compression.
-* **Native HDR10 Pass-Through**: Full 10-bit Rec.2020 HDR10 scanout support on HDR-configured displays.
-
-### 🔊 Advanced Audio & Subtitles
-* **Multi-Format Audio**: Multi-channel PCM 16-bit output, surround sound mixing, configurable PCM boost (50–300%), and millisecond-accurate audio delay adjustment.
-* **Advanced Subtitle Shaping**: Real-time rendering of styled ASS/SSA, SRT, and PGS bitmap subtitles with customizable fonts, colors, scaling, and offset controls.
+From ultra-high-bitrate **80+ GB 4K UHD Blu-ray REMUXes** to everyday web releases, Nuvio with Torrents streams peer swarms sequentially with instantaneous buffer calculation, genuine 10-bit Rec.2020 HDR10 scanout, zero transcoding, and a sleek, distraction-free console interface completely stripped of all donation prompts and third-party update nags.
 
 ---
 
-## 📥 Installation
+## 🌟 Crown Architectural Features
+
+### 🧲 Sovereign Native BitTorrent Streaming Engine
+* **100% Standalone on Console**: Streams torrents and magnet links directly from peer swarms. No PC, Docker host, companion server, or Debrid account required.
+* **Massive Multi-Piece Lookahead Pipelining**: Demolished legacy single-piece download bottlenecks. The engine maintains up to **32 concurrent pieces in flight simultaneously**, pre-buffering $N+1, N+2, N+3...$ lookahead windows at line rate.
+* **Instantaneous Seek Recovery**: Re-engineered seeking architecture. Skips forward or backward instantly flush legacy queue state, release seek gates, and re-prime the playhead without decoder deadlock or file system abandonment.
+* **True Piece-by-Piece Buffering Progress**: The buffering HUD accurately tracks exact byte progress across missing piece blocks instead of stalling at a blind `0%`.
+* **Live Dynamic Swarm HUD**: Swarm statistics (download speed, seeds, peers, buffer health) poll continuously every second, eliminating stale `0.0 MB/s` visual lag.
+* **Optimized High-Speed Socket Fabric**: 2 MB TCP receive socket buffers and `TCP_NODELAY` deliver sustained 30–50+ MB/s line-rate throughput on fiber and gigabit connections.
+
+### 🎨 4K UHD 60/120 Hz & True 10-Bit HDR10 Pipeline
+* **Direct Prospero AGC GPU Rendering**: Native-resolution 4K rendering via hardware-accelerated OpenGL 4.6 and direct Agc compute shaders.
+* **10-Bit Rec.2020 HDR10 Scanout**: Verified PS5 kernel handshake (`attribute: 0x62000000`) directs the display manager to grant authentic 10-bit Rec.2020 PQ scanout to OLED and HDR TVs.
+* **Automatic ITU-R BT.1886 HDR-to-SDR Tone Mapping**: If your TV or display profile is in SDR mode, high-precision shader luminance mapping compresses wide gamut BT.2020 without clipped highlights or washed-out tones.
+
+### 📱 Local Web Drop Companion (`:8088`)
+* **Built-in HTTP Web Portal**: Lightweight web server running directly on your PS5 (`http://<ps5-ip>:8088`).
+* **Instant Phone / PC Casting**: Scan the on-screen QR code from your phone or visit the address on your laptop to drag-and-drop `.torrent` files or paste magnet links directly to your big screen.
+
+### 💾 USB Flash Drive & Local Storage Auto-Detection
+* **Multi-Port Drive Scanning**: Automatically indexes `.torrent` files on any connected USB flash drive or SSD (`/mnt/usb0` through `/mnt/usb7`) and internal console storage (`/data/torrents/`, `/data/`).
+* **Deep Multi-File Layout Inspection**: Seamlessly browse episodes, seasons, or bonus features inside complex torrent packs.
+* **Stateful Resume & Watch History**: Remembers your exact watch progress across sessions with dedicated **Resume** and **Play from beginning** controls.
+
+### 🛡️ Pure, Distraction-Free Console UX
+* **Cleaned of External Influence**: Completely eliminated all author donation screens, Ko-fi links, QR codes, and persistent update nagging.
+* **Instant Boot**: No modal questions or install source interruptions; launches straight into your media library.
+
+---
+
+## 📦 Installation Packages & Setup
 
 ### Requirements
-* A PlayStation 5 console running compatible homebrew-enabled firmware (target: 13.60+).
+* A PlayStation 5 running compatible homebrew-enabled firmware (target: 13.60+).
 * An active payload environment with **ShadowMount+** (1.7+) or **Itemzflow Game Manager**.
 
-### Download Latest Release
+### Download Official Packages
 
-Grab the latest ready-to-run packages from the [Releases](https://github.com/chewlord76/nuvio-torrent-edition/releases/latest) section:
+| Package File | Best For | Installation Instructions |
+| :--- | :--- | :--- |
+| **`PPSA99288.ffpfsc`** | **ShadowMount+ 1.7** *(Recommended)* | Copy `.ffpfsc` to your USB drive or into `/data/` on the PS5. Open ShadowMount+ and select the image to mount. |
+| **`PPSA99288.zip`** | **Itemzflow Game Manager** | Extract `PPSA99288.zip`. Copy the unzipped `PPSA99288` directory to `/user/app/PPSA99288/` on your console. |
 
-| Package Format | Best For | Installation Instructions |
-| --- | --- | --- |
-| **`PPSA99288.ffpfsc`** | **ShadowMount+ 1.7** | Copy the `.ffpfsc` image file onto your USB drive or into `/data/` on the PS5. Open ShadowMount+ and mount the image. |
-| **`PPSA99288.zip`** | **Itemzflow** | Download and extract `PPSA99288.zip`. Copy the unzipped `PPSA99288` directory to `/user/app/PPSA99288/` on your console. |
-
-> **Note**: Title ID is **`PPSA99288`**. Always preserve your app data directory when updating.
+> **Title ID:** `PPSA99288` · App Name: **Nuvio with Torrents**
 
 ---
 
-## 🎮 How to Stream Torrents
-
-### Method 1: Web Drop (Easiest)
-1. Launch **Nuvio (Torrent Edition)** on your PS5.
-2. Go to the **Torrents** tab in the sidebar and click **Phone / PC Web Drop (QR Code)**.
-3. Scan the QR code with your phone or navigate to `http://<your-ps5-ip>:8088` in your browser.
-4. Drag-and-drop any `.torrent` file or paste a magnet link. Playback will begin on your PS5 immediately!
-
-### Method 2: USB Drive / Local Storage
-1. Copy `.torrent` files onto any USB flash drive or external SSD.
-2. Plug the USB drive into your PS5.
-3. Navigate to the **Torrents** tab. Your files will be cataloged under **Local .torrent files**.
-4. Press **Cross (X)** to stream immediately, or **Square** to select individual files inside the torrent.
-
-### Method 3: Direct Magnet Link Entry
-1. Select **Enter Magnet or .torrent URL** from the Torrents hub.
-2. Paste or type any `magnet:?xt=urn:btih:...` link or 40-character info-hash.
-
----
-
-## 🛠️ Controls Quick Reference
+## 🕹️ Controls Quick Reference
 
 | Button | Action |
-| --- | --- |
-| **Cross (X)** | Select / Play stream / Confirm |
-| **Circle (O)** | Back / Cancel / Stop playback |
-| **Square (□)** | Stream Options: Resume, Play from beginning, Select file, Remove |
+| :--- | :--- |
+| **Cross (✕)** | Select / Play stream / Confirm |
+| **Circle (○)** | Back / Cancel / Stop playback |
+| **Square (□)** | Stream Options Menu: **Resume**, **Play from beginning**, **Select file**, **Remove** |
 | **Triangle (△)** | Quick Search / Paste Magnet / Filter |
-| **L1 / R1** | Switch view filters (All Sources, Local Files, Recent Streams) |
-| **D-Pad Left / Right** | Jump backward / forward (configurable intervals) |
-| **D-Pad Up / Down** | Show player controls, audio tracks, and chapter selection |
+| **L1 / R1** | Switch view filters (All Sources, Local USB Files, Recent Streams) |
+| **D-Pad Left / Right** | Skip backward / forward (configurable seek interval) |
+| **D-Pad Up / Down** | Open playback HUD, audio tracks, and chapter selection |
+| **Options** | Audio track, subtitle shaping, and video output options |
+
+---
+
+## 🚀 How to Stream Torrents
+
+### 1. Via Web Drop (Easiest)
+1. Open **Nuvio with Torrents** on your PS5.
+2. Go to the **Torrents** tab in the sidebar and select **Phone / PC Web Drop (QR Code)**.
+3. Scan the QR code or enter `http://<ps5-ip>:8088` into your phone or PC browser.
+4. Drag-and-drop any `.torrent` file or paste a magnet link. Playback starts immediately on your TV!
+
+### 2. Via USB Flash Drive / Storage
+1. Copy your `.torrent` files to a USB flash drive.
+2. Plug the drive into your PS5.
+3. Navigate to **Torrents** → **Local .torrent files**.
+4. Press **Cross (✕)** to stream, or **Square (□)** to select specific episodes or files.
+
+### 3. Via Direct Magnet Entry
+1. Select **Enter Magnet or .torrent URL** in the Torrents hub.
+2. Paste any `magnet:?xt=urn:btih:...` link.
 
 ---
 
 ## 🏗️ Building from Source
 
-Builds are compiled inside a Linux environment (Ubuntu 22.04+ or WSL2 on Windows) using LLVM/Clang and the PS5 Open SDK toolchain.
+Builds are compiled inside a Linux environment (Ubuntu 22.04+ or WSL2 on Windows) with the PS5 Open SDK toolchain.
 
 ```bash
 # Clone the repository
-git clone https://github.com/chewlord76/nuvio-torrent-edition.git
-cd nuvio-torrent-edition/source/native-app
+git clone https://github.com/chewlord76/nuvio-with-torrents.git
+cd nuvio-with-torrents/source/native-app
 
 # Run the automated PS5 build script
 bash auto_build_ps5.sh
 ```
 
-Compiled binaries and package images will be output automatically into `READY_FOR_PS5/`.
+Packaged outputs will be placed in `READY_FOR_PS5/`:
+- `READY_FOR_PS5/PPSA99288.ffpfsc`
+- `READY_FOR_PS5/PPSA99288.zip`
 
 ---
 
 ## 📜 Credits & License
 
-* **Project Lead & Torrent Engine Architecture:** Developed and maintained by **chewlord76**.
-* **Base Application:** Forked from the open-source Nuvio Max'd base (upstream by HandshakeHackin).
-* **Core Libraries:** Powered by FFmpeg, libvlc, and Prospero AGC.
+* **Project Architect & BitTorrent Engine Lead:** Developed, optimized, and maintained by **chewlord76**.
+* **Base Platform:** Adapted from the open-source Nuvio foundation and re-engineered for standalone high-bitrate torrent streaming.
+* **Underlying Engines:** Powered by Prospero AGC, QuickJS, FFmpeg, and libvlc.
 * **License:** Distributed under the **[GNU General Public License v3.0](LICENSE)**.

@@ -26,7 +26,7 @@ with zipfile.ZipFile(args.package) as archive:
     assert files == report['fileSha256'], 'ZIP differs from validated image'
     param = json.loads(archive.read('PPSA99288/sce_sys/param.json'))
     assert param['titleId'] == 'PPSA99288'
-    assert param['localizedParameters']['en-US']['titleName'] == "Nuvio Max'd"
+    assert param['localizedParameters']['en-US']['titleName'] in ("Nuvio Max'd", "Nuvio with Torrents")
 report.update(zip=args.package.name, zipBytes=args.package.stat().st_size,
               zipSha256=hashlib.sha256(args.package.read_bytes()).hexdigest(),
               zipFilesMatchImage=True, zipPermissions='0777')

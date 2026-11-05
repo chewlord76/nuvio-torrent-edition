@@ -88,7 +88,7 @@ json scrobble(const std::string& p, const json& item) {
         else result["episode"] = {{"season", season}, {"number", episode}};
         result["show"] = media;
     }
-    if (p == "mdblist") result["app_name"] = "Nuvio Max'd";
+    if (p == "mdblist") result["app_name"] = "Nuvio with Torrents";
     return result;
 }
 }

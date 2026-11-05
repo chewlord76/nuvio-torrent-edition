@@ -19,7 +19,7 @@ ROOT="$(cd "$HERE/.." && pwd)"
 python3 "$ROOT/tools/validate_display_metadata.py" "$ROOT/app/sce_sys/param.json"
 TITLE="${1:-PPSA99288}"
 NAME="${2:-}"
-[ -n "$NAME" ] || NAME="Nuvio Max'd"
+[ -n "$NAME" ] || NAME="Nuvio with Torrents"
 [[ "$TITLE" =~ ^PPSA[0-9]{5}$ ]] || { echo "Invalid native title ID" >&2; exit 2; }
 SDK=${PS5_PAYLOAD_SDK:-/opt/ps5-payload-sdk}
 HB=$SDK/target/user/homebrew/lib

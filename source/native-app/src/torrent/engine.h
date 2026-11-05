@@ -138,6 +138,7 @@ public:
 	                                     int64_t* file_size, std::string* error);
 	void seek_reader(const std::shared_ptr<Torrent>& t, int reader_id, int file_idx, int64_t pos);
 	void close_reader(const std::shared_ptr<Torrent>& t, int reader_id);
+	int reader_wait_progress(const std::shared_ptr<Torrent>& t, int reader_id);
 	// Reads up to n bytes of the file at pos, waiting for them to arrive.
 	// Returns the count, 0 at the end of the file, -1 on abort/interrupt, -2 when the
 	// torrent was stopped.

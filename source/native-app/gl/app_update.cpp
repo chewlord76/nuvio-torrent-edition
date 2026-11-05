@@ -48,7 +48,7 @@ AppUpdate::~AppUpdate(){shutdown();}
 AppUpdate::Status AppUpdate::status() const {std::lock_guard lock(mutex_);return state_;}
 void AppUpdate::start_worker(std::function<void()> work) {
     try {worker_=std::thread(std::move(work));}
-    catch(...) {running_=false;set(Phase::error,"Could not start an update worker. Close and reopen Nuvio Max'd, then retry.");}
+    catch(...) {running_=false;set(Phase::error,"Could not start an update worker. Close and reopen Nuvio with Torrents, then retry.");}
 }
 void AppUpdate::set(Phase p,const std::string& m,float progress) {std::lock_guard lock(mutex_);if(state_.phase!=p)dlog("updater: phase %d: %s",int(p),m.c_str());state_.phase=p;state_.message=m;state_.progress=progress;}
 void AppUpdate::cancel(){cancel_=true;cv_.notify_all();}
@@ -66,20 +66,20 @@ void AppUpdate::check() {
                 if(!metadata.is_array())throw std::runtime_error("Invalid release response");
                 auto release=nuvio_update::select_release(metadata,nuvio_update::current_version);
                 {std::lock_guard lock(mutex_);state_.release=release;}
-                set(release.version.empty()?Phase::current:Phase::available,release.version.empty()?"No newer verified native release is available":"Nuvio Max'd "+release.version+" is available");
+                set(release.version.empty()?Phase::current:Phase::available,release.version.empty()?"No newer verified native release is available":"Nuvio with Torrents "+release.version+" is available");
             }
         }catch(...){set(Phase::error,"Could not read the release feed");}running_=false;
     });
 }
 void AppUpdate::download(const std::string& base,const std::string& data) {
     if(running_ || status().phase!=Phase::available)return;if(worker_.joinable())worker_.join();
-    const auto r=status().release;cancel_=false;install_=false;running_=true;set(Phase::downloading,"Downloading Nuvio Max'd "+r.version,0);
+    const auto r=status().release;cancel_=false;install_=false;running_=true;set(Phase::downloading,"Downloading Nuvio with Torrents "+r.version,0);
     start_worker([this,base,data,r] {
         std::string error,state;const auto local=data+"/update-"+std::to_string(getpid())+".part";
         int fd=open(local.c_str(),O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW,0600);bool owned=fd>=0;
         try {
             bool ok=owned && download_image(r,fd,cancel_,[this](float p){set(Phase::downloading,"Downloading and verifying the FFPFSC",p);},error);
-            if(!owned)error="Cannot stage the download in Nuvio Max'd storage. Remove a leftover update .part file and retry.";
+            if(!owned)error="Cannot stage the download in Nuvio with Torrents storage. Remove a leftover update .part file and retry.";
             if(ok) {set(Phase::staging,"Preparing the update helper...");ok=channel_.open(base+"/nuvio-updater.elf",cancel_,error);}
             if(ok) {
                 auto plan=Json{{"protocol",1},{"title_id",nuvio_update::title_id},{"version",r.version},{"tag",r.tag},{"url",r.url},{"sha256",r.sha256},{"size",r.size}}.dump()+"\n";
@@ -89,11 +89,11 @@ void AppUpdate::download(const std::string& base,const std::string& data) {
             while(ok && moved<r.size) {auto n=pread(fd,bytes.data(),std::min<std::uint64_t>(bytes.size(),r.size-moved),moved);ok=n>0 && channel_.send(bytes.data(),n,cancel_);if(n>0)moved+=n;set(Phase::staging,"Staging the verified image on install storage",float(double(moved)/r.size));}
             if(ok)ok=response(channel_,cancel_,state,error) && state=="ready";
             if(ok) {
-                set(Phase::ready,"Update verified. Install and close Nuvio Max'd when you are ready.",1);
+                set(Phase::ready,"Update verified. Install and close Nuvio with Torrents when you are ready.",1);
                 std::unique_lock lock(mutex_);cv_.wait_for(lock,std::chrono::seconds(240),[this]{return install_ || cancel_.load();});ok=install_ && !cancel_;lock.unlock();
                 if(ok) {const std::string install="install\n";ok=channel_.send(install.data(),install.size(),cancel_) && response(channel_,cancel_,state,error) && state=="closing";}
             }
-            if(ok)set(Phase::closing,"Closing Nuvio Max'd to install the update");
+            if(ok)set(Phase::closing,"Closing Nuvio with Torrents to install the update");
             else {channel_.close();set(cancel_?Phase::cancelled:Phase::error,cancel_?"Update cancelled; existing install retained":error.empty()?"Update expired or helper disconnected; existing install retained":error);}
         }catch(...){channel_.close();set(Phase::error,"Update failed; existing install retained");}
         if(fd>=0)close(fd);if(owned)unlink(local.c_str());running_=false;
