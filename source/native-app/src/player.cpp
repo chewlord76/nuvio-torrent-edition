@@ -568,7 +568,7 @@ void Player::demux_run() {
 		double mbps = fmt_->bit_rate > 0 ? fmt_->bit_rate / 1e6
 		              : (size > 0 && duration_ > 0) ? size * 8.0 / duration_ / 1e6
 		                                            : 0;
-		start_target_ = opts_.live_tv ? 2.0 : mbps >= 40 ? 3.5 : mbps >= 20 ? 3.0 : 2.0;
+		start_target_ = opts_.live_tv ? 2.0 : mbps >= 60 ? 5.0 : mbps >= 40 ? 4.0 : mbps >= 20 ? 3.0 : 2.0;
 		dlog("player: about %.0f Mbit/s, buffering %.1f s before playing", mbps, start_target_);
 	}
 	if (opts_.start > 0) do_seek(opts_.start);
@@ -1457,7 +1457,7 @@ void Player::update_buffering() {
 		bool audio_ready = !has_a || queued_audio_seconds() > 0 || aq_.count() > 0 || audio_drained_;
 		// Also go on when memory is nearly full (a very high bitrate) or we have enough buffer.
 		if (have_frame && (!seek_refill_ || !has_v || displayed_serial_ == vq_.serial()) && vdrop_ < 0 && audio_ready &&
-		    (eof_ || buf >= target || (buf >= 2.5 && stalls_ == 0) || vq_.bytes() + aq_.bytes() > kMaxQueueBytes * 9 / 10)) {
+		    (eof_ || buf >= target || vq_.bytes() + aq_.bytes() > kMaxQueueBytes * 9 / 10)) {
 			dlog("player: buffered %.1f s (target %.1f s), playing%s", buf, target, stalls_ > 0 ? " again" : "");
 			buffering_ = false;
 			seek_refill_ = false;
