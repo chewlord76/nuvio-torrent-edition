@@ -760,9 +760,14 @@ int take_slot(Torrent* t, double now) {
 		if (t->slot_touch[size_t(s)] < best_touch) best_touch = t->slot_touch[size_t(s)], best = s;
 	}
 	if (best < 0) {  // everything is ahead of a reader: the oldest anyway
-		for (int s = 0; s < t->nslots; s++)
+		for (int s = 0; s < t->nslots; s++) {
+			int p = t->piece_in_slot[size_t(s)];
+			if (first_file >= 0 && (p == first_file || p == first_file + 1 || p == last_file || p == last_file - 1))
+				continue;
 			if (t->slot_touch[size_t(s)] < best_touch) best_touch = t->slot_touch[size_t(s)], best = s;
+		}
 	}
+	if (best < 0) best = 0;
 	int old = t->piece_in_slot[size_t(best)];
 	if (old >= 0) t->have[size_t(old)] = 0, t->slot_of[size_t(old)] = -1;
 	(void)now;

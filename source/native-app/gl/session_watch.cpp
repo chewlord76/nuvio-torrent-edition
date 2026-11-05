@@ -467,7 +467,7 @@ void Session::watch_start(const std::string &url, const std::vector<std::string>
     o.live_tv = w_item_.type == "tv";
     o.read_ahead_seconds = w_trailer_ || w_item_.type == "tv" ? 2 : prefs_.read_ahead_seconds;
     o.evo = prefs_.evo_player;
-    o.vlc = prefs_.vlc_player;
+    o.vlc = prefs_.vlc_player && !TorrentStream::is_url(url);
     o.surround = prefs_.surround_audio;
     o.audio_mode=prefs_.audio_gain_percent==100?prefs_.audio_output_mode:"pcm";
     o.gain_percent=prefs_.audio_gain_percent;o.audio_delay=prefs_.audio_delay_ms/1000.0;

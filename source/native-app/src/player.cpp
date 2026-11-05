@@ -150,7 +150,7 @@ Player::~Player() { close(); }
 void Player::open(const Options& opts) {
 	close();
     ++revision_;
-	if(opts.vlc) {
+	if(opts.vlc && !TorrentStream::is_url(opts.url)) {
         subtitle_renderer_.clear();
         {std::lock_guard<std::mutex> lock(sub_m_);embedded_.clear();}
 		opts_=opts;
@@ -394,7 +394,7 @@ void Player::demux_run() {
 				return;
 			}
 		}
-		if (opts_.start <= 0 && starts_with(magic, "\x1A\x45\xDF\xA3")) {
+		if (starts_with(magic, "\x1A\x45\xDF\xA3")) {
 			main_pb_->seekable = 0;
 			quick_ = true;
 			// Matroska describes its tracks in the header, so a short look
