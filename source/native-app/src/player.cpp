@@ -394,14 +394,13 @@ void Player::demux_run() {
 				return;
 			}
 		}
-		if (starts_with(magic, "\x1A\x45\xDF\xA3")) {
+		if (torrent || starts_with(magic, "\x1A\x45\xDF\xA3")) {
 			main_pb_->seekable = 0;
 			quick_ = true;
-			// Matroska describes its tracks in the header, so a short look
-			// is enough; with few seeders every MB here is a long wait.
-			fmt_->probesize = 1 << 20;
-			fmt_->max_analyze_duration = AV_TIME_BASE / 2;
-			dlog("player: Matroska, starting without reading the end of the file");
+			// For torrent streams (MKV, M2TS, MP4), start quickly without reading the end of 80GB files
+			fmt_->probesize = 2 << 20;
+			fmt_->max_analyze_duration = AV_TIME_BASE;
+			dlog("player: quick start without scanning entire 80GB file tail");
 		}
 	}
 	int r = avformat_open_input(&fmt_, input_url.c_str(), content_format, &dict);

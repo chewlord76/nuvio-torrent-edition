@@ -641,7 +641,7 @@ void Session::watch_update()
         }
         else if (st == Player::State::Opening)
         {
-            launch.stage = 1;
+            launch.stage = (t_peers_ > 0 || t_speed_ > 0 || t_progress_ > 0) ? 2 : 1;
         }
         else if (buffering)
         {
