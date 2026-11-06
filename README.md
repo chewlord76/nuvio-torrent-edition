@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chewlord76/nuvio-with-torrents/releases/latest"><img src="https://img.shields.io/badge/Release-v2.5%20(Official%20Launch)-7b5bf5?style=for-the-badge&logo=playstation" alt="Latest Release"></a>
+  <a href="https://github.com/chewlord76/nuvio-torrent-edition/releases/latest"><img src="https://img.shields.io/github/v/release/chewlord76/nuvio-torrent-edition?color=7b5bf5&label=Release&style=for-the-badge&logo=playstation" alt="Latest Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge" alt="License: GPLv3"></a>
-  <a href="https://github.com/chewlord76/nuvio-with-torrents"><img src="https://img.shields.io/badge/Platform-PS5%20(Prospero)-003791?style=for-the-badge&logo=playstation5" alt="Platform: PS5"></a>
+  <a href="https://github.com/chewlord76/nuvio-torrent-edition"><img src="https://img.shields.io/badge/Platform-PS5%20(Prospero)-003791?style=for-the-badge&logo=playstation5" alt="Platform: PS5"></a>
   <img src="https://img.shields.io/badge/Video-4K%20UHD%20HDR10-success?style=for-the-badge" alt="4K HDR10">
 </p>
 
@@ -116,8 +116,8 @@ Builds are compiled inside a Linux environment (Ubuntu 22.04+ or WSL2 on Windows
 
 ```bash
 # Clone the repository
-git clone https://github.com/chewlord76/nuvio-with-torrents.git
-cd nuvio-with-torrents/source/native-app
+git clone https://github.com/chewlord76/nuvio-torrent-edition.git
+cd nuvio-torrent-edition/source/native-app
 
 # Run the automated PS5 build script
 bash auto_build_ps5.sh
